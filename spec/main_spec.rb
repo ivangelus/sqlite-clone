@@ -84,4 +84,22 @@ describe 'database' do
             "db > ",
         ])
     end
+
+    it 'allows inserting multiple rows' do
+        script = [
+            "insert 1 i i",
+            "insert 2 b b",
+            "select",
+            ".exit",
+        ]
+        result = run_script(script)
+        expect(result).to match_array ([
+            "db > Executed.",
+            "db > Executed.",
+            "db > (1, i, i)",
+            "(2, b, b)",
+            "Executed.",
+            "db > ",
+        ])
+    end
 end
