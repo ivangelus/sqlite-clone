@@ -1,7 +1,11 @@
 describe 'database' do
+    before do
+        `rm -rf test.db`
+    end
+
     def run_script(commands)
         row_output = nil
-        IO.popen("./db", "r+") do |pipe|
+            IO.popen("./db test.db", "r+") do |pipe|
             commands.each do |command|
                 pipe.puts command
             end
@@ -98,6 +102,26 @@ describe 'database' do
             "db > Executed.",
             "db > (1, i, i)",
             "(2, b, b)",
+            "Executed.",
+            "db > ",
+        ])
+    end
+
+    it 'persists data' do
+        result1 = run_script([
+            "insert 1 i i",
+            ".exit",
+        ])
+        expect(result1).to match_array([
+            "db > Executed.",
+            "db > ",
+        ])
+        result2 = run_script([
+            "select",
+            ".exit",
+        ])
+        expect(result2).to match_array([
+            "db > (1, i, i)",
             "Executed.",
             "db > ",
         ])
