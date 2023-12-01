@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include "buffer.h"
+
 
 #define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
 
@@ -199,23 +201,23 @@ typedef struct {
   Row row_to_insert;
 } Statement;
 
-typedef struct {
-  char* buffer;
-  size_t buffer_length;
-  ssize_t input_length;
-} InputBuffer;
+// typedef struct {
+//   char* buffer;
+//   size_t buffer_length;
+//   ssize_t input_length;
+// } InputBuffer;
 
 void print_prompt() { printf("db > "); }
 
-InputBuffer* new_input_buffer() {
-  InputBuffer* input_buffer = (InputBuffer*)malloc(sizeof(InputBuffer));
+// InputBuffer* new_input_buffer() {
+//   InputBuffer* input_buffer = (InputBuffer*)malloc(sizeof(InputBuffer));
 
-  input_buffer->buffer = NULL;
-  input_buffer->buffer_length = 0;
-  input_buffer->input_length = 0;
+//   input_buffer->buffer = NULL;
+//   input_buffer->buffer_length = 0;
+//   input_buffer->input_length = 0;
 
-  return input_buffer;
-}
+//   return input_buffer;
+// }
 
 void read_input(InputBuffer* input_buffer) {
   ssize_t bytes_read =
