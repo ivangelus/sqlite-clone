@@ -12,14 +12,13 @@
 #include "btree.h"  
 
 typedef enum { EXECUTE_SUCCESS, EXECUTE_TABLE_FULL } ExecuteResult;
+
 typedef enum { NODE_INTERNAL, NODE_LEAF } NodeType;
 
 typedef enum {
   META_COMMAND_SUCCESS,
   META_COMMAND_UNRECOGNIZED_RESULT
 } MetaCommandResult;
-
-typedef enum { STATEMENT_INSERT, STATEMENT_SELECT } StatementType;
 
 typedef enum {
   PREPARE_SUCCESS,
@@ -28,6 +27,8 @@ typedef enum {
   PREPARE_STRING_TOO_LONG,
   PREPARE_NEGATIVE_ID
 } PrepareResult;
+
+typedef enum { STATEMENT_INSERT, STATEMENT_SELECT } StatementType;
 
 typedef struct {
   StatementType type;
@@ -48,34 +49,6 @@ void read_input(InputBuffer* input_buffer) {
   // Ignore trailing newline
   input_buffer->input_length = bytes_read - 1;
   input_buffer->buffer[bytes_read - 1] = 0;
-}
-
-void db_close(Table* table) {
-  Pager* pager = table->pager;
-
-  for (uint32_t i = 0; i < pager->num_pages; i++) {
-    if (pager->pages[i] == NULL) {
-      continue;
-    }
-    pager_flush(pager, i);
-    pager->pages[i] = NULL;
-  }
-
-  int result = close(pager->file_descriptor);
-  if (result == -1) {
-    printf("Error closing db file.\n");
-  }
-
-  for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
-    void* page = pager->pages[i];
-    if (page) {
-    free(page);
-    pager->pages[i] = NULL;
-    }
-  }
-
-  free(pager);
-  free(table);
 }
 
 void print_constants() {
@@ -196,6 +169,34 @@ Table* db_open(const char* filename) {
   }
 
   return table;
+}
+
+void db_close(Table* table) {
+  Pager* pager = table->pager;
+
+  for (uint32_t i = 0; i < pager->num_pages; i++) {
+    if (pager->pages[i] == NULL) {
+      continue;
+    }
+    pager_flush(pager, i);
+    pager->pages[i] = NULL;
+  }
+
+  int result = close(pager->file_descriptor);
+  if (result == -1) {
+    printf("Error closing db file.\n");
+  }
+
+  for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
+    void* page = pager->pages[i];
+    if (page) {
+    free(page);
+    pager->pages[i] = NULL;
+    }
+  }
+
+  free(pager);
+  free(table);
 }
 
 int main(int argc, char* argv[]) {
