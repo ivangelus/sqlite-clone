@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "pager.h": "c",
+        "buffer.h": "c",
+        "unistd.h": "c",
+        "fcntl.h": "c",
+        "common.h": "c",
+        "table.h": "c",
+        "stdbool.h": "c",
+        "btree.h": "c"
+    }
+}
