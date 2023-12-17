@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "common.h"
 #include "pager.h"
+#include "table.h"
 
 uint32_t* leaf_node_num_cells(void* node);
 
@@ -13,6 +14,10 @@ uint32_t* leaf_node_key(void* node, uint32_t cell_num);
 void* leaf_node_value(void* node, uint32_t cell_num);
 
 void initialize_leaf_node(void* node);
+
+void print_leaf_node(void* node);
+
+void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value);
 
 /*
  * Leaf Node Header Layout

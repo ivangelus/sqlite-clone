@@ -14,36 +14,6 @@
 typedef enum { EXECUTE_SUCCESS, EXECUTE_TABLE_FULL } ExecuteResult;
 typedef enum { NODE_INTERNAL, NODE_LEAF } NodeType;
 
-Cursor* table_end(Table* table) {
-    Cursor* cursor = (Cursor*)malloc(sizeof(Cursor));
-    cursor->table = table;
-    cursor->page_num = table->root_page_num;
-  
-    void* root_node = get_page(table->pager, table->root_page_num);
-    uint32_t num_cells = *leaf_node_num_cells(root_node);
-    cursor->cell_num = num_cells;
-    cursor->end_of_table = true;
-
-    return cursor;
-}
-
-void print_row(Row* row) {
-  printf("(%d, %s, %s)\n", row->id, row->username,
-         row->email);
-}
-
-void serialize_row(Row* source, void* destination) {
-  memcpy(destination + ID_OFFSET, &(source->id), ID_SIZE);
-  strncpy(destination + USERNAME_OFFSET, source->username, USERNAME_SIZE);
-  strncpy(destination + EMAIL_OFFSET, source->email, EMAIL_SIZE);
-}
-
-void deserialize_row(void* source, Row* destination) {
-  memcpy(&(destination->id), source + ID_OFFSET, ID_SIZE);
-  memcpy(&(destination->username), source + USERNAME_OFFSET, USERNAME_SIZE);
-  memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
-}
-
 typedef enum {
   META_COMMAND_SUCCESS,
   META_COMMAND_UNRECOGNIZED_RESULT
@@ -78,11 +48,6 @@ void read_input(InputBuffer* input_buffer) {
   // Ignore trailing newline
   input_buffer->input_length = bytes_read - 1;
   input_buffer->buffer[bytes_read - 1] = 0;
-}
-
-void close_input_buffer(InputBuffer* input_buffer) {
-  free(input_buffer->buffer);
-  free(input_buffer);
 }
 
 void db_close(Table* table) {
@@ -120,15 +85,6 @@ void print_constants() {
   printf("LEAF_NODE_CELL_SIZE: %d\n", LEAF_NODE_CELL_SIZE);
   printf("LEAF_NODE_SPACE_FOR_CELLS: %d\n", LEAF_NODE_SPACE_FOR_CELLS);
   printf("LEAF_NODE_MAX_CELLS: %d\n", LEAF_NODE_MAX_CELLS);
-}
-
-void print_leaf_node(void* node) {
-  uint32_t num_cells = *leaf_node_num_cells(node);
-  printf("leaf (size %d)\n", num_cells);
-  for (uint32_t i = 0; i < num_cells; i++) {
-    uint32_t key = *leaf_node_key(node, i);
-    printf("  - %d : %d\n", i, key);
-  }
 }
 
 MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
@@ -189,46 +145,6 @@ PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement)
   return PREPARE_UNRECOGNIZED_STATEMENT;
 }
 
-void* cursor_value(Cursor* cursor) {
-  uint32_t page_num = cursor->page_num;
-
-  void* page = get_page(cursor->table->pager, page_num);
-
-  return leaf_node_value(page, cursor->cell_num);
-}
-
-void cursor_advance(Cursor* cursor) {
-    uint32_t page_num = cursor->page_num;
-    void* node = get_page(cursor->table->pager, page_num);
-
-    cursor->cell_num += 1;
-    if (cursor->cell_num >= (*leaf_node_num_cells(node))) {
-        cursor->end_of_table = true;
-    }
-}
-
-void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value) {
-    void* node = get_page(cursor->table->pager, cursor->page_num);
-
-    uint32_t num_cells = *leaf_node_num_cells(node);
-    if (num_cells >= LEAF_NODE_MAX_CELLS) {
-      // Node full
-      printf("Need to implement splitting a leaf node.\n");
-      exit(EXIT_FAILURE);
-    }
-
-    if (cursor->cell_num < num_cells) {
-      // Make room for new cell
-      for (uint32_t i = num_cells; i > cursor->cell_num; i--) {
-        memcpy(leaf_node_cell(node, i), leaf_node_cell(node, i - 1), LEAF_NODE_CELL_SIZE);
-      }
-    }
-
-    *(leaf_node_num_cells(node)) += 1;
-    *(leaf_node_key(node, cursor->cell_num)) = key;
-    serialize_row(value, leaf_node_value(node, cursor->cell_num));
-}
-
 ExecuteResult execute_insert(Statement* statement, Table* table) {
   void* node = get_page(table->pager, table->root_page_num);
   if (*(leaf_node_num_cells(node)) >= LEAF_NODE_MAX_CELLS) {
@@ -265,13 +181,6 @@ ExecuteResult execute_statement(Statement* statement, Table* table) {
       return execute_select(statement, table);
   }
 }
-
-// Table* new_table() {
-//   Table* table = (Table*)malloc(sizeof(Table));
-//   table->num_rows = 0;
-
-//   return table;
-// }
 
 Table* db_open(const char* filename) {
   Pager* pager = pager_open(filename);
