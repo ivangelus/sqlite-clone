@@ -19,6 +19,15 @@ void print_leaf_node(void* node);
 
 void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value);
 
+typedef enum { NODE_INTERNAL, NODE_LEAF } NodeType;
+
+NodeType get_node_type(void* node);
+
+void set_node_type(void* node, NodeType type);
+
+Cursor* leaf_node_find(Table* table, uint32_t page_num, uint32_t key);
+
+
 /*
  * Leaf Node Header Layout
  */

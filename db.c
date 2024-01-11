@@ -11,9 +11,7 @@
 #include "table.h"
 #include "btree.h"  
 
-typedef enum { EXECUTE_SUCCESS, EXECUTE_TABLE_FULL } ExecuteResult;
-
-typedef enum { NODE_INTERNAL, NODE_LEAF } NodeType;
+typedef enum { EXECUTE_SUCCESS, EXECUTE_TABLE_FULL, EXECUTE_DUPLICATE_KEY } ExecuteResult;
 
 typedef enum {
   META_COMMAND_SUCCESS,
@@ -60,23 +58,6 @@ void print_constants() {
   printf("LEAF_NODE_MAX_CELLS: %d\n", LEAF_NODE_MAX_CELLS);
 }
 
-MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
-  if (strcmp(input_buffer->buffer, ".exit") == 0) {
-    db_close(table);
-    exit(EXIT_SUCCESS);
-  } else if (strcmp(input_buffer->buffer, ".btree") == 0) {
-      printf("Tree:\n");
-      print_leaf_node(get_page(table->pager, 0));
-      return META_COMMAND_SUCCESS;
-  } else if (strcmp(input_buffer->buffer, ".constants") == 0) {
-      printf("Constants:\n");
-      print_constants();
-      return META_COMMAND_SUCCESS;
-  } else {
-      return META_COMMAND_UNRECOGNIZED_RESULT;
-  }
-}
-
 PrepareResult prepare_insert(InputBuffer* input_buffer, Statement* statement) {
     statement->type = STATEMENT_INSERT;
 
@@ -120,12 +101,22 @@ PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement)
 
 ExecuteResult execute_insert(Statement* statement, Table* table) {
   void* node = get_page(table->pager, table->root_page_num);
-  if (*(leaf_node_num_cells(node)) >= LEAF_NODE_MAX_CELLS) {
+  uint32_t num_cells = (*leaf_node_num_cells(node));
+  if (num_cells >= LEAF_NODE_MAX_CELLS) {
     return EXECUTE_TABLE_FULL;
   }
 
   Row* row_to_insert = &(statement->row_to_insert);
-  Cursor* cursor = table_end(table);
+
+  uint32_t key_to_insert = row_to_insert->id;
+  Cursor* cursor = table_find(table, key_to_insert);
+
+  if (cursor->cell_num < num_cells) {
+    uint32_t key_at_index = *leaf_node_key(node, cursor->cell_num);
+    if (key_at_index == key_to_insert) {
+      return EXECUTE_DUPLICATE_KEY;
+    }
+  }
 
   leaf_node_insert(cursor, row_to_insert->id, row_to_insert);
 
@@ -190,13 +181,30 @@ void db_close(Table* table) {
   for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
     void* page = pager->pages[i];
     if (page) {
-    free(page);
-    pager->pages[i] = NULL;
+      free(page);
+      pager->pages[i] = NULL;
     }
   }
 
   free(pager);
   free(table);
+}
+
+MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
+  if (strcmp(input_buffer->buffer, ".exit") == 0) {
+    db_close(table);
+    exit(EXIT_SUCCESS);
+  } else if (strcmp(input_buffer->buffer, ".btree") == 0) {
+      printf("Tree:\n");
+      print_leaf_node(get_page(table->pager, 0));
+      return META_COMMAND_SUCCESS;
+  } else if (strcmp(input_buffer->buffer, ".constants") == 0) {
+      printf("Constants:\n");
+      print_constants();
+      return META_COMMAND_SUCCESS;
+  } else {
+      return META_COMMAND_UNRECOGNIZED_RESULT;
+  }
 }
 
 int main(int argc, char* argv[]) {
@@ -243,6 +251,9 @@ int main(int argc, char* argv[]) {
     switch (execute_statement(&statement, table)) {
       case (EXECUTE_SUCCESS):
         printf("Executed.\n");
+        break;
+      case (EXECUTE_DUPLICATE_KEY):
+        printf("Error: Duplicate key.\n");
         break;
       case (EXECUTE_TABLE_FULL):
         printf("Error: Table full.\n");
