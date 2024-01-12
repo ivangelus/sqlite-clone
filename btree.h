@@ -15,8 +15,6 @@ void* leaf_node_value(void* node, uint32_t cell_num);
 
 void initialize_leaf_node(void* node);
 
-void print_leaf_node(void* node);
-
 void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value);
 
 typedef enum { NODE_INTERNAL, NODE_LEAF } NodeType;
@@ -27,6 +25,11 @@ void set_node_type(void* node, NodeType type);
 
 Cursor* leaf_node_find(Table* table, uint32_t page_num, uint32_t key);
 
+void set_node_root(void* node, bool is_root);
+
+void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level);
+
+Cursor* internal_node_find(Table* table, uint32_t page_num, uint32_t key);
 
 /*
  * Leaf Node Header Layout

@@ -102,9 +102,6 @@ PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement)
 ExecuteResult execute_insert(Statement* statement, Table* table) {
   void* node = get_page(table->pager, table->root_page_num);
   uint32_t num_cells = (*leaf_node_num_cells(node));
-  if (num_cells >= LEAF_NODE_MAX_CELLS) {
-    return EXECUTE_TABLE_FULL;
-  }
 
   Row* row_to_insert = &(statement->row_to_insert);
 
@@ -157,6 +154,7 @@ Table* db_open(const char* filename) {
       // New database file. Initialize page 0 as leaf node.
       void* root_node = get_page(pager, 0);
       initialize_leaf_node(root_node);
+      set_node_root(root_node, true);
   }
 
   return table;
@@ -196,7 +194,7 @@ MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
     exit(EXIT_SUCCESS);
   } else if (strcmp(input_buffer->buffer, ".btree") == 0) {
       printf("Tree:\n");
-      print_leaf_node(get_page(table->pager, 0));
+      print_tree(table->pager, 0, 0);
       return META_COMMAND_SUCCESS;
   } else if (strcmp(input_buffer->buffer, ".constants") == 0) {
       printf("Constants:\n");

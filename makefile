@@ -19,6 +19,9 @@ btree.o: btree.c btree.h
 run: db
 	./db mydb.db
 
+test: db
+	bundle exec rspec
+
 clean:
 	rm -f db db.o buffer.o table.o pager.o btree.o *.db
 
