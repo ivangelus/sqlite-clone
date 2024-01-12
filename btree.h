@@ -29,6 +29,8 @@ void set_node_root(void* node, bool is_root);
 
 void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level);
 
+uint32_t* leaf_node_next_leaf(void* node);
+
 Cursor* internal_node_find(Table* table, uint32_t page_num, uint32_t key);
 
 /*
